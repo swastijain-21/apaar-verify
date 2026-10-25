@@ -192,7 +192,7 @@ export function loadDemoData(): { data: DemoData; error: string | null } {
       !Array.isArray((parsed as Record<string, unknown>).students) ||
       !Array.isArray((parsed as Record<string, unknown>).audit)
     ) {
-      throw new Error("Saved demo data has an unsupported format.");
+      throw new Error("Saved student data has an unsupported format.");
     }
 
     const students = (parsed as { students: unknown[] }).students.map(
@@ -203,7 +203,7 @@ export function loadDemoData(): { data: DemoData; error: string | null } {
       students.some((student) => student === null) ||
       !audit.every(isAuditEntry)
     ) {
-      throw new Error("Saved demo data has an unsupported format.");
+      throw new Error("Saved student data has an unsupported format.");
     }
 
     return {
@@ -218,7 +218,7 @@ export function loadDemoData(): { data: DemoData; error: string | null } {
       error instanceof Error ? error.message : "Browser storage is unavailable.";
     return {
       data: { students: initialStudents, audit: initialAudit },
-      error: `Could not load saved demo data: ${message}`,
+      error: `Could not load saved student data: ${message}`,
     };
   }
 }

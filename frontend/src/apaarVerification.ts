@@ -39,7 +39,7 @@ export function validateApaarId(
   if (!trimmed) {
     return {
       valid: false,
-      message: "Enter a fictional demo APAAR ID to continue.",
+      message: "Enter a fictional APAAR ID to continue.",
     };
   }
   if (!/^(?:\d{12}|\d{4}[- ]\d{4}[- ]\d{4})$/.test(trimmed)) {
@@ -60,20 +60,20 @@ export const demoVerificationProvider: ApaarVerificationProvider<DemoVerificatio
       return {
         mode: "demo",
         outcome: "Demo match",
-        message: "This fictional test ID matches a local demo fixture only.",
+        message: "This fictional test value matches a local comparison sample only.",
       };
     }
     if (normalized === demoNoMatchId) {
       return {
         mode: "demo",
         outcome: "No demo match",
-        message: "This fictional test ID has no matching local demo fixture.",
+        message: "This fictional test value has no matching local comparison sample.",
       };
     }
     return {
       mode: "demo",
       outcome: "Needs manual review",
-      message: "No demo fixture result is defined for this ID.",
+      message: "No sample comparison result is defined for this ID.",
     };
   },
 };
@@ -81,4 +81,4 @@ export const demoVerificationProvider: ApaarVerificationProvider<DemoVerificatio
 export const officialVerificationProvider: ApaarVerificationProvider<OfficialVerificationResult> | null = null;
 
 export const officialVerificationUnavailableMessage =
-  "Official verification unavailable — demo mode only";
+  "Official verification unavailable — simulated comparison only";

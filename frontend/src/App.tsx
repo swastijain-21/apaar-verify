@@ -92,7 +92,7 @@ function formatDate(value: string): string {
 function maskApaarId(apaarId: string): string {
   if (!apaarId) return "Not provided";
   const lastFour = normalizeApaarId(apaarId).slice(-4);
-  return lastFour ? `•••• •••• ${lastFour}` : "Invalid demo ID";
+  return lastFour ? `•••• •••• ${lastFour}` : "Invalid APAAR ID";
 }
 
 function makeAuditEntry(
@@ -163,9 +163,18 @@ function queueCategoryLabel(category: QueueCategory): string {
 
 function auditActionLabel(action: string): string {
   return action
+    .replaceAll("Demo record", "Student record")
+    .replaceAll("Demo status", "Overall status")
+    .replaceAll("APAAR demo verification", "APAAR comparison")
     .replaceAll("Needs manual review", demoApaarOutcomeLabels["Needs manual review"])
     .replaceAll("No demo match", demoApaarOutcomeLabels["No demo match"])
     .replaceAll("Demo match", demoApaarOutcomeLabels["Demo match"]);
+}
+
+function auditDetailLabel(detail: string): string {
+  return detail
+    .replaceAll("demo fixture", "sample comparison")
+    .replaceAll("demo enrollment details", "student record details");
 }
 
 function StudentTable({
@@ -189,10 +198,10 @@ function StudentTable({
         <thead>
           <tr>
             <th scope="col">STUDENT</th>
-            <th scope="col">DEMO ROLL NUMBER</th>
+            <th scope="col">STUDENT ROLL NUMBER</th>
             <th scope="col">INSTITUTION</th>
             <th scope="col">APAAR ID</th>
-            <th scope="col">SIMULATED APAAR RESULT</th>
+            <th scope="col">RECORD COMPARISON</th>
             <th scope="col">OVERALL STATUS</th>
             <th scope="col" className="actions-heading">
               ACTIONS
@@ -312,11 +321,11 @@ function StudentFormModal({
   }
 
   return (
-    <Modal title={student ? "Edit student record" : "Register a demo student"} onClose={onClose}>
+    <Modal title={student ? "Edit student record" : "Register student"} onClose={onClose}>
       <form className="modal-form" noValidate onSubmit={submit}>
         <div className="form-demo-warning">
-          Use fictional demo values only. Do not enter real student or APAAR information.
-          This prototype does not connect to official records.
+          Use fictional sample values only. Do not enter real student or APAAR information.
+          This prototype is not connected to the official APAAR system.
         </div>
         <label>
           Student display name
@@ -325,17 +334,17 @@ function StudentFormModal({
             maxLength={80}
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Demo Student One"
+            placeholder="e.g. Aarav Sharma"
             required
           />
         </label>
         <label>
-          Demo roll number
+          Student Roll Number
           <input
             maxLength={50}
             value={rollNumber}
             onChange={(event) => setRollNumber(event.target.value)}
-            placeholder="e.g. DEMO-CSE-001"
+            placeholder="e.g. SIH-CSE-001"
             required
           />
         </label>
@@ -350,7 +359,7 @@ function StudentFormModal({
           />
         </label>
         <label>
-          APAAR ID <span className="label-demo-tag">FICTIONAL DEMO ONLY</span>
+          APAAR ID <span className="label-demo-tag">FICTIONAL SAMPLE ONLY</span>
           <input
             type="text"
             inputMode="numeric"
@@ -396,7 +405,7 @@ function ReviewModal({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (status === "flagged" && !note.trim()) {
-      setError("Add a reason before flagging this demo record.");
+      setError("Add a reason before flagging this student record.");
       return;
     }
     setSaving(true);
@@ -432,13 +441,13 @@ function ReviewModal({
       </div>
       <form className="modal-form" onSubmit={(event) => void submit(event)}>
         <div className="review-fields">
-          <div><span>Demo roll number</span><strong>{student.rollNumber}</strong></div>
+          <div><span>Student Roll Number</span><strong>{student.rollNumber}</strong></div>
           <div><span>Institution</span><strong>{student.institution}</strong></div>
           <div><span>Record comparison · simulated</span><DemoOutcomeBadge outcome={student.demoApaarOutcome} /></div>
           <div><span>Overall student status</span><StatusBadge status={student.status} /></div>
         </div>
         <label>
-          Set simulated review status
+          Set overall student status
           <select
             value={status}
             onChange={(event) => {
@@ -512,7 +521,7 @@ function StudentDetailsModal({
         </div>
       </div>
       <dl className="detail-grid">
-        <div><dt>Demo roll number</dt><dd>{student.rollNumber}</dd></div>
+        <div><dt>Student Roll Number</dt><dd>{student.rollNumber}</dd></div>
         <div><dt>Institution</dt><dd>{student.institution}</dd></div>
         <div>
           <dt>APAAR ID · masked</dt>
@@ -537,14 +546,14 @@ function StudentDetailsModal({
       <section className="apaar-verification">
         <div className="apaar-section-heading">
           <div>
-            <span className="demo-verification-label">DEMO VERIFICATION</span>
-            <h3>APAAR Verification</h3>
+            <span className="demo-verification-label">SIMULATED WORKFLOW</span>
+            <h3>APAAR ID Comparison</h3>
           </div>
-          <span className="demo-only-pill">NOT OFFICIAL</span>
+          <span className="demo-only-pill">SIMULATED</span>
         </div>
         <p className="official-unavailable">
           {officialVerificationProvider
-            ? "An official provider is configured separately; this action still runs demo verification only."
+            ? "Official verification is separate; this action uses local sample comparisons only."
             : officialVerificationUnavailableMessage}
         </p>
         <p className="apaar-disclaimer">
@@ -557,7 +566,7 @@ function StudentDetailsModal({
           <span>Other valid IDs: Requires Verification</span>
         </div>
         <div className="saved-demo-outcome">
-          <span>Latest saved simulated result</span>
+          <span>Latest comparison outcome</span>
           <DemoOutcomeBadge outcome={student.demoApaarOutcome} />
         </div>
         <button
@@ -580,8 +589,8 @@ function StudentDetailsModal({
               setDemoResult(null);
               setVerificationError(
                 error instanceof Error
-                  ? `Demo verification could not be completed: ${error.message}`
-                  : "Demo verification could not be completed.",
+                  ? `The comparison could not be completed: ${error.message}`
+                  : "The comparison could not be completed.",
               );
             } finally {
               setIsVerifying(false);
@@ -589,19 +598,19 @@ function StudentDetailsModal({
           }}
         >
           <ShieldCheck size={16} />
-          {isVerifying ? "Running demo check…" : "Run demo verification"}
+          {isVerifying ? "Running comparison…" : "Run comparison"}
         </button>
         {!student.apaarId && (
-          <p className="field-error">Add an APAAR ID in Edit to run the demo check.</p>
+          <p className="field-error">Add an APAAR ID in Edit to run the comparison.</p>
         )}
         {verificationError && <p className="field-error" role="alert">{verificationError}</p>}
         {visibleDemoOutcome && (
           <div className="demo-result" role="status">
-            <span className="demo-result-heading">DEMO RESULT — NOT OFFICIAL</span>
+            <span className="demo-result-heading">SIMULATED OUTCOME — NOT OFFICIAL</span>
             <strong>{demoApaarOutcomeLabels[visibleDemoOutcome]}</strong>
             <p>
               {demoResult?.message ??
-                "Latest saved result from the local fictional demo fixture; not official."}
+                "Latest saved result from local fictional sample data; not official."}
             </p>
           </div>
         )}
@@ -609,7 +618,7 @@ function StudentDetailsModal({
       {student.verifierNote && (
         <div className="note-box">
           <strong>Review note</strong>
-          <p>{student.verifierNote}</p>
+          <p>{student.verifierNote.replace(/^Demo note:/, "Review note:")}</p>
         </div>
       )}
       <div className="detail-history">
@@ -620,7 +629,7 @@ function StudentDetailsModal({
           studentHistory.slice(0, 4).map((entry) => (
             <div className="history-item" key={entry.id}>
               <span className="history-mark"><Activity size={14} /></span>
-              <div><strong>{entry.action}</strong><span>{formatDate(entry.timestamp)}</span></div>
+              <div><strong>{auditActionLabel(entry.action)}</strong><span>{formatDate(entry.timestamp)}</span></div>
             </div>
           ))
         )}
@@ -905,7 +914,7 @@ function App() {
     apaarId: string;
   }) {
     if (!fields.name || !fields.rollNumber || !fields.institution) {
-      setFormError("Complete the name, demo roll number, and institution fields.");
+      setFormError("Complete the name, student roll number, and institution fields.");
       return;
     }
     const validation = validateApaarId(fields.apaarId);
@@ -927,7 +936,7 @@ function App() {
     );
     if (duplicate) {
       setFormError(
-        "A record with this demo roll number and institution, or this APAAR ID, already exists.",
+        "A record with this student roll number and institution, or this APAAR ID, already exists.",
       );
       return;
     }
@@ -954,7 +963,7 @@ function App() {
       showFeedback(
         persisted ? "success" : "error",
         persisted
-          ? "Student demo record updated."
+          ? "Student record updated."
           : `Changes were not saved to ${isSupabaseConfigured ? "Supabase" : "browser storage"}. Please retry.`,
       );
     } else {
@@ -975,7 +984,7 @@ function App() {
       showFeedback(
         persisted ? "success" : "error",
         persisted
-          ? "Student demo record registered and added to the review queue."
+          ? "Student record registered and added to the review queue."
           : `Record was not saved to ${isSupabaseConfigured ? "Supabase" : "browser storage"}. Please retry.`,
       );
     }
@@ -1027,7 +1036,7 @@ function App() {
     setModal(null);
     showFeedback(
       "success",
-      `Simulated status updated to ${status}.`,
+      `Overall student status updated to ${status}.`,
     );
   }
 
@@ -1044,8 +1053,8 @@ function App() {
     };
     const entry = makeAuditEntry(
       updatedStudent,
-      `APAAR demo verification: ${result.outcome}`,
-      "Fictional demo fixture result only; the full APAAR ID was not recorded and no official records were queried.",
+    `APAAR demo verification: ${result.outcome}`,
+    "Fictional demo fixture result only; the full APAAR ID was not recorded and no official records were queried.",
       user?.id ?? null,
     );
     const persisted = await commitData(
@@ -1061,7 +1070,7 @@ function App() {
   }
 
   async function deleteStudent(student: Student) {
-    if (!window.confirm(`Delete the demo record for ${student.name}? This cannot be undone.`)) {
+    if (!window.confirm(`Delete the student record for ${student.name}? This cannot be undone.`)) {
       return;
     }
     const persisted = await commitData(
@@ -1075,13 +1084,13 @@ function App() {
     showFeedback(
       persisted ? "success" : "error",
       persisted
-        ? "Student demo record deleted."
+        ? "Student record deleted."
         : `Record deletion was not saved to ${isSupabaseConfigured ? "Supabase" : "browser storage"}. Please retry.`,
     );
   }
 
   async function restoreDemoData() {
-    if (!window.confirm("Restore the original fictional sample records? Current demo records will be replaced.")) {
+    if (!window.confirm("Restore the original fictional sample records? Current student records will be replaced.")) {
       return;
     }
     let persisted: boolean;
@@ -1094,7 +1103,7 @@ function App() {
         persisted = true;
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Could not restore demo data.";
+          error instanceof Error ? error.message : "Could not restore sample records.";
         setStorageError(`Supabase restore failed: ${message}`);
         persisted = false;
       }
@@ -1105,7 +1114,7 @@ function App() {
     showFeedback(
       persisted ? "success" : "error",
       persisted
-        ? "Original fictional demo records restored."
+        ? "Original fictional sample records restored."
         : `Sample records were not saved to ${isSupabaseConfigured ? "Supabase" : "browser storage"}. Please retry.`,
     );
   }
@@ -1156,7 +1165,7 @@ function App() {
           <p className="eyebrow">SUPABASE AUTHENTICATION</p>
           <h1>Staff sign in</h1>
           <p>Sign in with an authorized account created by your Supabase project administrator.</p>
-          <div className="auth-mode-note">Supabase mode is configured. Local demo records are not uploaded or shown in this mode.</div>
+          <div className="auth-mode-note">Supabase mode is configured. Local sample records are not uploaded or shown in this mode.</div>
           <form className="modal-form auth-form" onSubmit={(event) => void signIn(event)}>
             <label>
               Staff email
@@ -1218,12 +1227,12 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-prototype">
-          <span><ShieldCheck size={16} /> {isSupabaseConfigured ? "Supabase mode" : "Local demo mode"}</span>
+          <span><ShieldCheck size={16} /> {isSupabaseConfigured ? "Supabase mode" : "Local storage mode"}</span>
           <p>{isSupabaseConfigured ? "Signed-in staff data. APAAR checks remain simulated." : "Fictional records in this browser only."}</p>
         </div>
         <div className="sidebar-user">
           <span className="user-avatar">{isSupabaseConfigured ? (user?.email?.slice(0, 1).toUpperCase() ?? "S") : "AD"}</span>
-          <span><strong>{isSupabaseConfigured ? user?.email : "Institution Admin"}</strong><small>{isSupabaseConfigured ? "Authorized staff" : "Demo account"}</small></span>
+          <span><strong>{isSupabaseConfigured ? user?.email : "Institution Admin"}</strong><small>{isSupabaseConfigured ? "Authorized staff" : "Prototype account"}</small></span>
           {isSupabaseConfigured && (
             <button className="sidebar-logout" onClick={() => void signOut()} aria-label="Sign out" title="Sign out">
               <ArrowLeft size={15} />
@@ -1236,7 +1245,7 @@ function App() {
         <header className="topbar">
           <div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{activeNavigation.label}</strong></div>
           <div className="topbar-tools">
-            <span className={`prototype-pill${isSupabaseConfigured ? " supabase-mode-pill" : ""}`}><span /> {isSupabaseConfigured ? "SUPABASE MODE" : "LOCAL DEMO MODE"}</span>
+            <span className={`prototype-pill${isSupabaseConfigured ? " supabase-mode-pill" : ""}`}><span /> {isSupabaseConfigured ? "SUPABASE MODE" : "LOCAL STORAGE MODE"}</span>
             {isSupabaseConfigured && (
               <button className="top-signout" onClick={() => void signOut()}>Sign out</button>
             )}
@@ -1259,7 +1268,7 @@ function App() {
           )}
           {supabaseConfigurationError && (
             <div className="feedback feedback-error" role="alert">
-              <AlertTriangle size={17} /><span>{supabaseConfigurationError} Continuing in local demo mode.</span>
+              <AlertTriangle size={17} /><span>{supabaseConfigurationError} Continuing in local storage mode.</span>
             </div>
           )}
 
@@ -1267,7 +1276,7 @@ function App() {
             <>
               <PageHeading
                 eyebrow="INSTITUTION OVERVIEW"
-                title="Student verification dashboard"
+                title="Student Records Dashboard"
                 description="A clear view of student records and simulated review progress."
                 action={<button className="button-primary" onClick={() => openForm()}><Plus size={17} /> Add student</button>}
               />
@@ -1275,7 +1284,7 @@ function App() {
               <StatsGrid counts={counts} />
               <RecordsPanel
                 title="Recent student records"
-                description="Search across demo names, roll numbers, and institutions."
+                description="Search across student names, roll numbers, and institutions."
                 students={recentMatchingStudents}
                 totalCount={students.length}
                 filteredCount={Math.min(matchingStudents.length, 6)}
@@ -1298,12 +1307,12 @@ function App() {
               <PageHeading
                 eyebrow="RECORD MANAGEMENT"
                 title="Student records"
-                description="Manage fictional student entries stored in this browser."
+                description="Manage student records available in this workspace."
                 action={<button className="button-primary" onClick={() => openForm()}><Plus size={17} /> Add student</button>}
               />
               <RecordsPanel
                 title="All student records"
-                description="Duplicate checks use demo roll number and institution."
+                description="Duplicate checks use student roll number and institution."
                 students={visibleStudents}
                 totalCount={students.length}
                 filteredCount={filteredCount}
@@ -1323,9 +1332,9 @@ function App() {
           {screen === "queue" && (
             <>
               <PageHeading
-                eyebrow="SIMULATED REVIEW"
+                eyebrow="STUDENT REVIEW & RECORD COMPARISON"
                 title="Verification queue"
-                description="Review student status alongside separately labelled simulated APAAR outcomes."
+                description="Review overall student status separately from simulated APAAR comparison outcomes."
               />
               <div className="queue-categories" role="group" aria-label="Filter verification queue by review category">
                 {([
@@ -1346,18 +1355,18 @@ function App() {
                 ))}
               </div>
               <p className="queue-demo-warning">
-                Record Matched, Record Mismatch, and Requires Verification are simulated comparison outcomes only. They do not establish identity or official APAAR status.
+                Comparison outcomes are simulated and do not establish identity or official APAAR status. This prototype is not connected to the official APAAR system.
               </p>
               <RecordsPanel
                 title={
                   queueCategory === "awaiting-review"
                     ? "Pending Review"
-                    : `${queueCategoryLabel(queueCategory)} · simulated result`
+                    : `${queueCategoryLabel(queueCategory)} · simulated comparison`
                 }
                 description={
                   queueCategory === "awaiting-review"
                     ? "New registrations remain pending until staff records an overall review outcome."
-                    : "The simulated APAAR outcome is shown separately from the overall student status."
+                    : "This simulated comparison outcome is separate from the overall student status."
                 }
                 students={queueStudents}
                 totalCount={students.length}
@@ -1384,7 +1393,7 @@ function App() {
               <PageHeading
                 eyebrow="ACTIVITY HISTORY"
                 title="Audit logs"
-                description={`Recorded actions with staff identity and student record references · ${isSupabaseConfigured ? "Supabase" : "local demo"} mode.`}
+                description={`Recorded actions with staff identity and student record references · ${isSupabaseConfigured ? "Supabase" : "local storage"} mode.`}
               />
               <section className="content-card audit-card">
                 <div className="card-heading">
@@ -1399,9 +1408,9 @@ function App() {
                         <span className="audit-mark"><Activity size={16} /></span>
                         <div className="audit-entry-main">
                           <div className="audit-entry-title"><strong>{auditActionLabel(entry.action)}</strong><span>{formatDate(entry.timestamp)}</span></div>
-                          <p><b>{entry.studentName}</b> · {entry.detail}</p>
+                          <p><b>{entry.studentName}</b> · {auditDetailLabel(entry.detail)}</p>
                           <p className="audit-meta">
-                            Staff user ID: {entry.actorUserId ?? "Not available in local demo"}
+                            Staff user ID: {entry.actorUserId ?? "Not available in local mode"}
                             {" · "}Record ID: {entry.studentId || "No linked student record"}
                           </p>
                         </div>
@@ -1419,12 +1428,12 @@ function App() {
               <PageHeading
                 eyebrow="PREFERENCES"
                 title="Settings"
-                description="Prototype configuration and local demo data controls."
+                description="Prototype configuration and local data controls."
               />
               <section className="content-card settings-card">
                 <div className="settings-row">
                   <span className="settings-icon"><ShieldCheck size={19} /></span>
-                  <div className="settings-copy"><h2>Prototype mode</h2><p>All statuses are simulated. This app does not access official APAAR records or APIs.</p></div>
+                  <div className="settings-copy"><h2>Prototype mode</h2><p>APAAR comparison outcomes are simulated. This app is not connected to the official APAAR system.</p></div>
                   <span className="settings-state">Active</span>
                 </div>
                 <div className="settings-row">
@@ -1434,8 +1443,8 @@ function App() {
                 </div>
                 <div className="settings-row settings-row-action">
                   <span className="settings-icon settings-icon-amber"><ArrowLeft size={18} /></span>
-                  <div className="settings-copy"><h2>Restore sample data</h2><p>Replace current demo records with the original fictional examples.</p></div>
-                  <button className="button-secondary" onClick={restoreDemoData}>Restore demo data</button>
+                  <div className="settings-copy"><h2>Restore sample data</h2><p>Replace current student records with fictional examples.</p></div>
+                  <button className="button-secondary" onClick={restoreDemoData}>Restore sample records</button>
                 </div>
               </section>
               <div className="privacy-note"><strong>Privacy reminder</strong><p>Use fictional data only. Do not enter real student identity information, APAAR IDs, credentials, or documents. A future authorized integration is required for real verification.</p></div>
@@ -1444,7 +1453,7 @@ function App() {
 
           <footer className="page-footer">
             <span>EduVerify · SIH prototype</span>
-            <span>Simulated data only <span className="footer-dot">·</span> Not connected to APAAR</span>
+            <span>Simulated comparison workflows <span className="footer-dot">·</span> Not connected to official APAAR</span>
           </footer>
         </div>
       </main>
@@ -1509,7 +1518,7 @@ function PrototypeNotice() {
       <span className="notice-icon"><ShieldCheck size={19} /></span>
       <div>
         <strong>Prototype environment — fictional data only</strong>
-        <p>Statuses are simulated for demonstration. This prototype does not access, verify, or store official APAAR records.</p>
+        <p>Comparison workflows are simulated. This prototype is not connected to the official APAAR system and does not verify identity.</p>
       </div>
     </div>
   );
@@ -1521,7 +1530,7 @@ function StatsGrid({
   counts: { total: number; verified: number; pending: number; flagged: number };
 }) {
   const stats = [
-    { label: "Total students", value: counts.total, caption: "Demo records", icon: Users, tone: "navy" },
+    { label: "Total students", value: counts.total, caption: "Student Records", icon: Users, tone: "navy" },
     { label: "Verified", value: counts.verified, caption: "Overall student status", icon: ShieldCheck, tone: "green" },
     { label: "Pending Review", value: counts.pending, caption: "Staff review required", icon: Clock3, tone: "amber" },
     { label: "Flagged records", value: counts.flagged, caption: "Need follow-up", icon: AlertTriangle, tone: "red" },
@@ -1584,8 +1593,8 @@ function RecordsPanel({
           <input
             value={search}
             onChange={(event) => onSearch(event.target.value)}
-            placeholder="Search name, demo roll number, institution"
-            aria-label="Search students by name, demo roll number, or institution"
+            placeholder="Search name, student roll number, institution"
+            aria-label="Search students by name, student roll number, or institution"
           />
           {search && <button aria-label="Clear search" onClick={() => onSearch("")}><X size={15} /></button>}
         </label>
