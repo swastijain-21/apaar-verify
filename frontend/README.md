@@ -1,6 +1,6 @@
 # EduVerify SIH Prototype
 
-An institutional portal prototype for the SIH problem statement on APAAR-based student data management. Student record management can run in browser-local storage mode or use a configured Supabase project. APAAR comparison workflows are simulated; this prototype is not connected to the official APAAR system.
+An institutional portal prototype for the SIH problem statement on APAAR-based student data management. Student record management can run in Local Data Storage mode or use a configured Supabase project. APAAR comparison workflows are simulated; this prototype is not connected to the official APAAR system.
 
 > **Prototype notice:** APAAR comparison outcomes are generated from fictional local samples. The app is not connected to the official APAAR system and does not verify identity.
 
@@ -30,7 +30,7 @@ The `@supabase/supabase-js` dependency is already present in `package.json` and 
    ```
 
    `.env` is ignored by git. Restart Vite after changing environment variables. Vite exposes `VITE_` variables to browser code, so only a publishable/public key belongs here; database access is restricted with RLS, not by hiding this key.
-3. For a new setup, in the Supabase SQL Editor run [`supabase/migrations/20261026000000_student_management.sql`](./supabase/migrations/20261026000000_student_management.sql), then [`supabase/migrations/20261026040000_demo_apaar_outcome.sql`](./supabase/migrations/20261026040000_demo_apaar_outcome.sql). If the base tables/policies were already created, run only the second migration to add the simulated APAAR outcome column. The base migration enables and forces RLS, scopes access to the authenticated user's `auth.uid()`, and grants audit log insert/read access only (no update/delete policy).
+3. For a new setup, in the Supabase SQL Editor run [`supabase/migrations/20261026000000_student_management.sql`](./supabase/migrations/20261026000000_student_management.sql), then [`supabase/migrations/20261026040000_demo_apaar_outcome.sql`](./supabase/migrations/20261026040000_demo_apaar_outcome.sql). If the base tables/policies were already created, run only the second migration to add the simulated APAAR outcome column. The base migration enables and forces RLS, scopes access to the authenticated user's `auth.uid()`, and grants Activity History record insert/read access only (no update/delete policy).
 4. Create staff accounts in the Supabase Dashboard under **Authentication → Users** using **Invite user** (or your institution's controlled account-provisioning process). Do not enable public sign-up for this prototype. Staff sign in with the invited account and password. The app does not provide a sign-up path. Supabase email/SMTP settings may need to be configured for invitation flows.
 5. Start the app with `npm run dev`. When both environment variables are present, the app switches to **Supabase mode** and requires staff sign-in. It queries only rows allowed by RLS. If the SQL has not been run or credentials are incorrect, an error is shown; this is not a connected/verified deployment until configured and tested.
 
@@ -48,9 +48,9 @@ Local sample data is never copied to Supabase on sign-in or mode change. Supabas
 - Overall status is a separate staff review decision (Pending, Verified, or Flagged); it is not an APAAR identity verification. A reason is required when a record is flagged.
 - Student tables and details mask APAAR IDs by default. Student details have a reveal control for local testing.
 - Record Comparison is a simulated workflow. The fictional test ID `1234-5678-9012` returns “Record Matched”, `0000-0000-0000` returns “Record Mismatch”, and other valid IDs return “Requires Verification”. Unchecked records display “Not Checked”.
-- Audit Logs show review actions, timestamps, staff user IDs when available, and student record IDs. Full APAAR IDs are not written to the audit log.
+- Activity History shows review actions, timestamps, staff user IDs when available, and student record IDs. Full APAAR IDs are not written to Activity History.
 - Settings can restore the original fictional sample records.
-- Records and audit entries persist in this browser's local storage. Clearing browser storage removes them.
+- Student records and Activity Records persist in this browser's local data storage. Clearing browser storage removes them.
 - Supabase mode stores signed-in staff records in the configured Supabase project, subject to RLS. Sign-in and sign-out use Supabase Auth.
 
 ## Test the APAAR comparison workflow
@@ -61,7 +61,7 @@ Local sample data is never copied to Supabase on sign-in or mode change. Supabas
    - `1234-5678-9012` returns **Record Matched**.
    - `0000-0000-0000` returns **Record Mismatch**.
    - Any other valid 12-digit value returns **Requires Verification**.
-4. Try adding or editing a record with an empty or malformed ID to see validation, then use **Audit Logs** to view the simulated attempt and timestamp. Audit entries never contain the full ID.
+4. Try adding or editing a record with an empty or malformed ID to see validation, then use **Activity History** to view the simulated attempt and timestamp. Activity Records never contain the full ID.
 
 ## Data and verification limitations
 
@@ -70,5 +70,5 @@ Local sample data is never copied to Supabase on sign-in or mode change. Supabas
 - APAAR comparison provider types and fictional sample logic live in `src/apaarVerification.ts`, separate from React. No external service receives an ID. An authorized official provider is not configured.
 - A configured Supabase deployment persists APAAR IDs in its database. Use fictional test IDs in this prototype; never use real student data. The frontend uses only the Supabase publishable key and relies on the SQL migration's RLS policies for row access.
 - Existing browser records without an `apaarId` are migrated in memory with an empty string; editing them requires adding a validly formatted fictional test ID.
-- Browser local storage is device-local and is not a secure database or trusted audit trail. Supabase's audit table is append-only through this app's RLS grants but is not a tamper-proof compliance log against privileged project administrators.
+- Local Data Storage is device-local and is not a secure database or tamper-proof Activity History. Supabase's `verification_audit_logs` table is append-only through this app's RLS grants but is not tamper-proof against privileged project administrators.
 - A production deployment still needs an authorized APAAR verification integration, institution-level staff authorization, and appropriate privacy and security safeguards. No official verification API, endpoint, or credentials are assumed here.

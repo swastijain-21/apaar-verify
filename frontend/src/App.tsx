@@ -8,16 +8,19 @@ import {
   Check,
   ChevronRight,
   Clock3,
+  Database,
   FileCheck2,
   GraduationCap,
   LayoutDashboard,
   Plus,
+  RotateCcw,
   Search,
   Settings,
   ShieldCheck,
   Trash2,
   Users,
   X,
+  Info,
   Pencil,
   Eye,
   EyeOff,
@@ -72,7 +75,7 @@ const navigation: {
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "records", label: "Student Records", icon: Users },
   { id: "queue", label: "Verification Queue", icon: FileCheck2 },
-  { id: "audit", label: "Audit Logs", icon: Activity },
+  { id: "audit", label: "Activity History", icon: Activity },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -897,6 +900,18 @@ function App() {
     return student.demoApaarOutcome === queueCategory;
   });
   const sortedAudit = [...audit].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const storageModeLabel = isSupabaseConfigured
+    ? user
+      ? "Supabase-backed storage"
+      : "Supabase sign-in required"
+    : "Local Data Storage (browser)";
+  const storageStateLabel = dataLoading
+    ? "Loading"
+    : storageError
+      ? "Attention required"
+      : isSupabaseConfigured
+        ? "Connected"
+        : "Available";
 
   function showFeedback(kind: "success" | "error", text: string) {
     setFeedback({ kind, text });
@@ -1064,7 +1079,7 @@ function App() {
       [entry, ...audit],
     );
     if (!persisted) {
-      throw new Error("The result could not be recorded in the audit log.");
+      throw new Error("The result could not be recorded in Activity History.");
     }
     return result;
   }
@@ -1090,7 +1105,9 @@ function App() {
   }
 
   async function restoreDemoData() {
-    if (!window.confirm("Restore the original fictional sample records? Current student records will be replaced.")) {
+    if (!window.confirm(
+      "Restore fictional sample records?\n\nThis will replace the current student records. In local browser storage, Activity History will also be restored to the sample entries. In Supabase, existing Activity History is retained and sample activity records are added.\n\nThis action cannot be undone. Continue?",
+    )) {
       return;
     }
     let persisted: boolean;
@@ -1392,12 +1409,12 @@ function App() {
             <>
               <PageHeading
                 eyebrow="ACTIVITY HISTORY"
-                title="Audit logs"
-                description={`Recorded actions with staff identity and student record references · ${isSupabaseConfigured ? "Supabase" : "local storage"} mode.`}
+                title="Activity History"
+                description={`Recorded actions with staff identity and student record references · ${isSupabaseConfigured ? "Supabase" : "Local Data Storage"} mode.`}
               />
               <section className="content-card audit-card">
                 <div className="card-heading">
-                  <div><h2>Recent activity</h2><p>{audit.length} recorded actions</p></div>
+                  <div><h2>Recent activity</h2><p>{audit.length} Activity Records</p></div>
                 </div>
                 {sortedAudit.length === 0 ? (
                   <div className="empty-state audit-empty"><Activity size={23} /><strong>No activity yet</strong><span>Registration, edits, and reviews will appear here.</span></div>
@@ -1419,35 +1436,73 @@ function App() {
                   </div>
                 )}
               </section>
-              <p className="small-disclaimer">Audit history is stored locally in this browser and is not tamper-proof.</p>
+              <p className="small-disclaimer">
+                {isSupabaseConfigured
+                  ? "Activity History is stored in Supabase and is not tamper-proof against privileged project administrators."
+                  : "Activity History is stored in this browser and is not tamper-proof."}
+              </p>
             </>
           )}
 
           {screen === "settings" && (
             <>
               <PageHeading
-                eyebrow="PREFERENCES"
+                eyebrow="ADMINISTRATION"
                 title="Settings"
-                description="Prototype configuration and local data controls."
+                description="Manage application preferences, data and prototype configuration."
               />
-              <section className="content-card settings-card">
-                <div className="settings-row">
-                  <span className="settings-icon"><ShieldCheck size={19} /></span>
-                  <div className="settings-copy"><h2>Prototype mode</h2><p>APAAR comparison outcomes are simulated. This app is not connected to the official APAAR system.</p></div>
-                  <span className="settings-state">Active</span>
+              <div className="settings-grid">
+                <section className="content-card settings-panel">
+                  <div className="settings-panel-heading">
+                    <span className="settings-icon"><ShieldCheck size={19} /></span>
+                    <div className="settings-copy">
+                      <h2>Prototype Environment</h2>
+                      <p>Record comparison uses simulated workflows. This application is not connected to the official APAAR system.</p>
+                    </div>
+                    <span className="settings-state">Prototype Active</span>
+                  </div>
+                </section>
+                <section className="content-card settings-panel" aria-live="polite">
+                  <div className="settings-panel-heading">
+                    <span className="settings-icon"><Database size={19} /></span>
+                    <div className="settings-copy">
+                      <h2>Data Storage</h2>
+                      <p>{storageModeLabel}</p>
+                    </div>
+                    <span className={`settings-state${storageError ? " settings-state-warning" : " settings-state-muted"}`}>
+                      {storageStateLabel}
+                    </span>
+                  </div>
+                  <div className="storage-counts">
+                    {dataLoading ? (
+                      <p>Loading student and activity records…</p>
+                    ) : (
+                      <>
+                        <div><strong>{students.length}</strong><span>Student Records</span></div>
+                        <div><strong>{audit.length}</strong><span>Activity Records</span></div>
+                      </>
+                    )}
+                  </div>
+                  {storageError && <p className="settings-error" role="alert">{storageError}</p>}
+                </section>
+                <section className="content-card settings-panel settings-sample-panel">
+                  <div className="settings-panel-heading">
+                    <span className="settings-icon settings-icon-amber"><RotateCcw size={19} /></span>
+                    <div className="settings-copy">
+                      <h2>Restore Sample Records</h2>
+                      <p>Replace current student records with fictional examples. Review the confirmation before continuing.</p>
+                    </div>
+                    <button className="button-secondary" onClick={restoreDemoData}>Restore sample records</button>
+                  </div>
+                </section>
+              </div>
+              <aside className="privacy-note" role="note">
+                <Info size={19} aria-hidden="true" />
+                <div>
+                  <strong>Privacy Notice</strong>
+                  <p>Use fictional student data only. Do not enter real student identity information, APAAR IDs, credentials, or documents. Real APAAR verification requires an authorized official integration; none is configured in this prototype.</p>
                 </div>
-                <div className="settings-row">
-                  <span className="settings-icon"><Users size={19} /></span>
-                  <div className="settings-copy"><h2>Browser-local storage</h2><p>{storageError ? "Storage is unavailable; current changes remain in this view only." : `${students.length} student records and ${audit.length} audit entries are saved on this device only.`}</p></div>
-                  <span className="settings-state settings-state-muted">Local</span>
-                </div>
-                <div className="settings-row settings-row-action">
-                  <span className="settings-icon settings-icon-amber"><ArrowLeft size={18} /></span>
-                  <div className="settings-copy"><h2>Restore sample data</h2><p>Replace current student records with fictional examples.</p></div>
-                  <button className="button-secondary" onClick={restoreDemoData}>Restore sample records</button>
-                </div>
-              </section>
-              <div className="privacy-note"><strong>Privacy reminder</strong><p>Use fictional data only. Do not enter real student identity information, APAAR IDs, credentials, or documents. A future authorized integration is required for real verification.</p></div>
+              </aside>
             </>
           )}
 
